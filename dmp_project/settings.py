@@ -132,7 +132,7 @@ PUBLISHER_NAME = os.getenv("PUBLISHER", "DMP - FREE MUSIC CATALOGUE SOFTWARE")
 PUBLISHER_CODE = os.getenv("PUBLISHER_CODE", "000")
 
 # IPI Name # is required, issued by collecting societies
-PUBLISHER_IPI_NAME = os.getenv("PUBLISHER_IPI_NAME", "")
+PUBLISHER_IPI_NAME = os.getenv("PUBLISHER_IPI_NAME", "0072279219")
 # IPI Base # is rarely used, issued by collecting societies
 PUBLISHER_IPI_BASE = os.getenv("PUBLISHER_IPI_BASE", None)
 
@@ -146,13 +146,13 @@ PUBLISHER_SOCIETY_SR = os.getenv("PUBLISHER_SOCIETY_SR", None)
 
 # Shares transferred to the original publisher, default to 50%/100%/100%
 PUBLISHING_AGREEMENT_PUBLISHER_PR = Decimal(
-    os.getenv("PUBLISHING_AGREEMENT_PUBLISHER_PR", "0.5")
+    os.getenv("PUBLISHING_AGREEMENT_PUBLISHER_PR", "0.25")
 )
 PUBLISHING_AGREEMENT_PUBLISHER_MR = Decimal(
-    os.getenv("PUBLISHING_AGREEMENT_PUBLISHER_MR", "1.0")
+    os.getenv("PUBLISHING_AGREEMENT_PUBLISHER_MR", "0.25")
 )
 PUBLISHING_AGREEMENT_PUBLISHER_SR = Decimal(
-    os.getenv("PUBLISHING_AGREEMENT_PUBLISHER_SR", "1.0")
+    os.getenv("PUBLISHING_AGREEMENT_PUBLISHER_SR", "0.25")
 )
 
 # Set to one of the following options to change names and titles
