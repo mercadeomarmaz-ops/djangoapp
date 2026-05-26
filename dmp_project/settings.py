@@ -132,7 +132,7 @@ PUBLISHER_NAME = os.getenv("PUBLISHER", "DMP - FREE MUSIC CATALOGUE SOFTWARE")
 PUBLISHER_CODE = os.getenv("PUBLISHER_CODE", "000")
 
 # IPI Name # is required, issued by collecting societies
-PUBLISHER_IPI_NAME = os.getenv("PUBLISHER_IPI_NAME", "1286976193")
+PUBLISHER_IPI_NAME = os.getenv("PUBLISHER_IPI_NAME", "00803318077")
 # IPI Base # is rarely used, issued by collecting societies
 PUBLISHER_IPI_BASE = os.getenv("PUBLISHER_IPI_BASE", None)
 
