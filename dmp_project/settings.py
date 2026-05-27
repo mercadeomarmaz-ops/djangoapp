@@ -129,7 +129,7 @@ SECURE_SSL_REDIRECT = not DEBUG
 PUBLISHER_NAME = os.getenv("PUBLISHER", "DMP - FREE MUSIC CATALOGUE SOFTWARE")
 
 # CWR Delivery code, issued by collecting societies
-PUBLISHER_CODE = os.getenv("PUBLISHER_CODE", "065")
+PUBLISHER_CODE = os.getenv("PUBLISHER_CODE", "004")
 
 # IPI Name # is required, issued by collecting societies
 PUBLISHER_IPI_NAME = os.getenv("PUBLISHER_IPI_NAME", "01135451385")
