@@ -1759,18 +1759,19 @@ class CWRExport(models.Model):
         copublished_writer_ids,
         other_publisher_share,
     ):
-        reported_writers = set()
-        for wiw in work["writers"]:
-            if not wiw["controlled"]:
-                continue  # goes to OWR
+reported_writers = set()
 
-            w = wiw["writer"]
-            writer_key = w.get("ipi_name_number") or w.get("code")
+for wiw in work["writers"]:
+    if not wiw["controlled"]:
+        continue  # goes to OWR
 
-            if writer_key in reported_writers:
-                continue
+    w = wiw["writer"]
+    writer_key = w.get("ipi_name_number") or w.get("code")
 
-            reported_writers.add(writer_key)
+    if writer_key in reported_writers:
+        continue
+
+    reported_writers.add(writer_key)
 
             agr = wiw["original_publishers"][0]["agreement"]
             saan = agr["recipient_agreement_number"] if agr else None
@@ -1827,13 +1828,7 @@ class CWRExport(models.Model):
                 yield self.get_transaction_record(
                     "PWR", {"code": w["code"], "publisher_sequence": 2}
                 )
-    self,
-    work,
-    publisher,
-    controlled_shares,
-    copublished_writer_ids,
-    other_publisher_share,
-        
+
     ):
       reported_writers = set()
 
