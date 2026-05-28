@@ -1757,7 +1757,12 @@ class CWRExport(models.Model):
         copublished_writer_ids,
         other_publisher_share,
     ):
+   reported_writers = set()
         for wiw in work["writers"]:
+            if writer_key in reported_writers:
+    continue
+
+reported_writers.add(writer_key)
             if not wiw["controlled"]:
                 continue  # goes to OWR
             w = wiw["writer"]
@@ -1768,7 +1773,7 @@ class CWRExport(models.Model):
 
         reported_writers.add(writer_key)
         
-            agr = wiw["original_publishers"][0]["agreement"]
+            agr = wiw["original_publishers"][0]["agreement"] 
             saan = agr["recipient_agreement_number"] if agr else None
             affiliations = w.get("affiliations", [])
             for aff in affiliations:
@@ -1814,34 +1819,31 @@ class CWRExport(models.Model):
                     "PWR", {"code": w["code"], "publisher_sequence": 2}
                 )
 
-    def yield_other_writer_lines(
-        self, work, controlled_writer_ids, other_publisher_share
+    def yield_controlled_writer_lines(
+    self,
+    work,
+    publisher,
+    controlled_shares,
+    copublished_writer_ids,
+    other_publisher_share,
+        
     ):
-        for wiw in work["writers"]:
-            if wiw["controlled"]:
-                continue  # done in SWR
-            writer = wiw["writer"]
-            if writer and writer["code"] in controlled_writer_ids:
-                continue  # co-publishing, already solved
-            if writer:
-                w = wiw["writer"]
-                affiliations = w.get("affiliations", [])
-                for aff in affiliations:
-                    if aff["affiliation_type"]["code"] == "PR":
-                        w["pr_society"] = aff["organization"]["code"]
-                    elif aff["affiliation_type"]["code"] == "MR":
-                        w["mr_society"] = aff["organization"]["code"]
-                    elif aff["affiliation_type"]["code"] == "SR":
-                        w["sr_society"] = aff["organization"]["code"]
-            else:
-                w = {"writer_unknown_indicator": "Y"}
-            share = Decimal(wiw["relative_share"])
-            w.update(
-                {
-                    "writer_role": (
-                        wiw["writer_role"]["code"]
-                        if wiw["writer_role"]
-                        else None
+      reported_writers = set()
+
+    for wiw in work["writers"]:
+        if not wiw["controlled"]:
+            continue  # goes to OWR
+
+        w = wiw["writer"]
+        writer_key = w.get("ipi_name_number") or w.get("code")
+
+        if writer_key in reported_writers:
+            continue
+
+        reported_writers.add(writer_key)
+
+        agr = wiw["original_publishers"][0]["agreement"]
+        saan = agr["recipient_agreement_number"] if agr else None
                     ),
                     "share": share,
                     "pr_share": share,
