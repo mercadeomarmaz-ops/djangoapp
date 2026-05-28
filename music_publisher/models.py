@@ -1759,19 +1759,19 @@ class CWRExport(models.Model):
         copublished_writer_ids,
         other_publisher_share,
     ):
-reported_writers = set()
+        reported_writers = set()
 
-for wiw in work["writers"]:
-    if not wiw["controlled"]:
-        continue  # goes to OWR
+        for wiw in work["writers"]:
+            if not wiw["controlled"]:
+                continue  # goes to OWR
 
-    w = wiw["writer"]
-    writer_key = w.get("ipi_name_number") or w.get("code")
+            w = wiw["writer"]
+            writer_key = w.get("ipi_name_number") or w.get("code")
 
-    if writer_key in reported_writers:
-        continue
+            if writer_key in reported_writers:
+                continue
 
-    reported_writers.add(writer_key)
+            reported_writers.add(writer_key)
 
             agr = wiw["original_publishers"][0]["agreement"]
             saan = agr["recipient_agreement_number"] if agr else None
@@ -1829,23 +1829,40 @@ for wiw in work["writers"]:
                     "PWR", {"code": w["code"], "publisher_sequence": 2}
                 )
 
+    def yield_other_writer_lines(
+        self, work, controlled_writer_ids, other_publisher_share
     ):
-      reported_writers = set()
+        for wiw in work["writers"]:
+            if wiw["controlled"]:
+                continue  # done in SWR
 
-    for wiw in work["writers"]:
-        if not wiw["controlled"]:
-            continue  # goes to OWR
+            writer = wiw["writer"]
 
-        w = wiw["writer"]
-        writer_key = w.get("ipi_name_number") or w.get("code")
+            if writer and writer["code"] in controlled_writer_ids:
+                continue  # co-publishing, already solved
 
-        if writer_key in reported_writers:
-            continue
+            if writer:
+                w = wiw["writer"]
+                affiliations = w.get("affiliations", [])
 
-        reported_writers.add(writer_key)
+                for aff in affiliations:
+                    if aff["affiliation_type"]["code"] == "PR":
+                        w["pr_society"] = aff["organization"]["code"]
+                    elif aff["affiliation_type"]["code"] == "MR":
+                        w["mr_society"] = aff["organization"]["code"]
+                    elif aff["affiliation_type"]["code"] == "SR":
+                        w["sr_society"] = aff["organization"]["code"]
+            else:
+                w = {"writer_unknown_indicator": "Y"}
 
-        agr = wiw["original_publishers"][0]["agreement"]
-        saan = agr["recipient_agreement_number"] if agr else None
+            share = Decimal(wiw["relative_share"])
+
+            w.update(
+                {
+                    "writer_role": (
+                        wiw["writer_role"]["code"]
+                        if wiw["writer_role"]
+                        else None
                     ),
                     "share": share,
                     "pr_share": share,
@@ -1853,26 +1870,18 @@ for wiw in work["writers"]:
                     "sr_share": share,
                 }
             )
+
             yield self.get_transaction_record("OWR", w)
+
             if w["share"]:
                 yield self.get_transaction_record("OWT", w)
+
             if w["share"]:
                 yield self.get_transaction_record("MAN", w)
+
             if self.version in ["30", "31"] and other_publisher_share:
                 w["publisher_sequence"] = 2
-                yield self.get_transaction_record("PWR", w)
-
-    def get_party_lines(self, work):
-        """Yield SPU, SPT, OPU, SWR, SWT, OPT and PWR lines
-
-        Args:
-            work: musical work
-
-        Yields:
-            str: CWR record (row/line)
-        """
-
-        # SPU, SPT
+                yield self.get_transaction_record("PWR", w)        # SPU, SPT
         (
             controlled_relative_share,
             other_publisher_share,
