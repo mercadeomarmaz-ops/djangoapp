@@ -140,9 +140,9 @@ PUBLISHER_IPI_BASE = os.getenv("PUBLISHER_IPI_BASE", None)
 # Numerical value as string without the leading zero:
 # '52' for PRS, '44' for MCPS, '10' for ASCAP, '34' for HFA. etc.
 # see  music_publisher/societies.csv
-PUBLISHER_SOCIETY_PR = os.getenv("PUBLISHER_SOCIETY_PR", "084")
-PUBLISHER_SOCIETY_MR = os.getenv("PUBLISHER_SOCIETY_MR", "084")
-PUBLISHER_SOCIETY_SR = os.getenv("PUBLISHER_SOCIETY_SR", "084")
+PUBLISHER_SOCIETY_PR = os.getenv("PUBLISHER_SOCIETY_PR", "84")
+PUBLISHER_SOCIETY_MR = os.getenv("PUBLISHER_SOCIETY_MR", "84")
+PUBLISHER_SOCIETY_SR = os.getenv("PUBLISHER_SOCIETY_SR", "84")
 
 # Shares transferred to the original publisher, default to 50%/100%/100%
 PUBLISHING_AGREEMENT_PUBLISHER_PR = Decimal(
