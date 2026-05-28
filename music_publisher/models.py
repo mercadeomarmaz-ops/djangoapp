@@ -1761,6 +1761,13 @@ class CWRExport(models.Model):
             if not wiw["controlled"]:
                 continue  # goes to OWR
             w = wiw["writer"]
+            writer_key = w.get("ipi_name_number") or w.get("code")
+
+        if writer_key in reported_writers:
+            continue
+
+        reported_writers.add(writer_key)
+        
             agr = wiw["original_publishers"][0]["agreement"]
             saan = agr["recipient_agreement_number"] if agr else None
             affiliations = w.get("affiliations", [])
