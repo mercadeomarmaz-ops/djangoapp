@@ -1881,7 +1881,19 @@ class CWRExport(models.Model):
 
             if self.version in ["30", "31"] and other_publisher_share:
                 w["publisher_sequence"] = 2
-                yield self.get_transaction_record("PWR", w)        # SPU, SPT
+                yield self.get_transaction_record("PWR", w)
+
+    def get_party_lines(self, work):
+        """Yield SPU, SPT, OPU, SWR, SWT, OPT and PWR lines
+
+        Args:
+            work: musical work
+
+        Yields:
+            str: CWR record (row/line)
+        """
+
+        # SPU, SPT
         (
             controlled_relative_share,
             other_publisher_share,
@@ -1889,14 +1901,16 @@ class CWRExport(models.Model):
             controlled_writer_ids,
             copublished_writer_ids,
         ) = self.calculate_publisher_shares(work)
+
         publisher = work["writers"][0]["original_publishers"][0]["publisher"]
+
         yield from self.yield_publisher_lines(
             publisher, controlled_relative_share
         )
+
         yield from self.yield_other_publisher_lines(other_publisher_share)
 
         # SWR, SWT, PWR
-
         yield from self.yield_controlled_writer_lines(
             work,
             publisher,
@@ -1906,11 +1920,9 @@ class CWRExport(models.Model):
         )
 
         # OWR
-
         yield from self.yield_other_writer_lines(
             work, controlled_writer_ids, other_publisher_share
         )
-
     def get_alt_lines(self, work):
         alt_titles = set()
         for at in work["other_titles"]:
