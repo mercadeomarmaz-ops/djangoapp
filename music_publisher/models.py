@@ -1749,8 +1749,6 @@ class CWRExport(models.Model):
             copublished_writer_ids,
         )
 
-
-
     def yield_controlled_writer_lines(
         self,
         work,
@@ -1759,24 +1757,13 @@ class CWRExport(models.Model):
         copublished_writer_ids,
         other_publisher_share,
     ):
-        reported_writers = set()
-
         for wiw in work["writers"]:
             if not wiw["controlled"]:
                 continue  # goes to OWR
-
             w = wiw["writer"]
-            writer_key = w.get("ipi_name_number") or w.get("code")
-
-            if writer_key in reported_writers:
-                continue
-
-            reported_writers.add(writer_key)
-
             agr = wiw["original_publishers"][0]["agreement"]
             saan = agr["recipient_agreement_number"] if agr else None
             affiliations = w.get("affiliations", [])
-
             for aff in affiliations:
                 if aff["affiliation_type"]["code"] == "PR":
                     w["pr_society"] = aff["organization"]["code"]
@@ -1784,12 +1771,10 @@ class CWRExport(models.Model):
                     w["mr_society"] = aff["organization"]["code"]
                 elif aff["affiliation_type"]["code"] == "SR":
                     w["sr_society"] = aff["organization"]["code"]
-
             share = controlled_shares[w["code"]]
             pr_share = share * (1 - self.agreement_pr)
             mr_share = share * (1 - self.agreement_mr)
             sr_share = share * (1 - self.agreement_sr)
-
             w.update(
                 {
                     "writer_role": wiw["writer_role"]["code"],
@@ -1801,28 +1786,21 @@ class CWRExport(models.Model):
                     "original_publishers": wiw["original_publishers"],
                 }
             )
-
             yield self.get_transaction_record("SWR", w)
-
             if share:
                 yield self.get_transaction_record("SWT", w)
-
             if share:
                 yield self.get_transaction_record("MAN", w)
-
             w["publisher_sequence"] = 1
             w["publisher_code"] = "P000001"
             w["publisher_name"] = publisher["name"]
-
             yield self.get_transaction_record("PWR", w)
-
             copublished = (
                 self.version in ["30", "31"]
                 and other_publisher_share
                 and w
                 and w["code"] in copublished_writer_ids
             )
-
             if copublished:
                 w["publisher_sequence"] = 2
                 yield self.get_transaction_record(
@@ -1835,16 +1813,12 @@ class CWRExport(models.Model):
         for wiw in work["writers"]:
             if wiw["controlled"]:
                 continue  # done in SWR
-
             writer = wiw["writer"]
-
             if writer and writer["code"] in controlled_writer_ids:
                 continue  # co-publishing, already solved
-
             if writer:
                 w = wiw["writer"]
                 affiliations = w.get("affiliations", [])
-
                 for aff in affiliations:
                     if aff["affiliation_type"]["code"] == "PR":
                         w["pr_society"] = aff["organization"]["code"]
@@ -1854,9 +1828,7 @@ class CWRExport(models.Model):
                         w["sr_society"] = aff["organization"]["code"]
             else:
                 w = {"writer_unknown_indicator": "Y"}
-
             share = Decimal(wiw["relative_share"])
-
             w.update(
                 {
                     "writer_role": (
@@ -1870,15 +1842,11 @@ class CWRExport(models.Model):
                     "sr_share": share,
                 }
             )
-
             yield self.get_transaction_record("OWR", w)
-
             if w["share"]:
                 yield self.get_transaction_record("OWT", w)
-
             if w["share"]:
                 yield self.get_transaction_record("MAN", w)
-
             if self.version in ["30", "31"] and other_publisher_share:
                 w["publisher_sequence"] = 2
                 yield self.get_transaction_record("PWR", w)
@@ -1901,16 +1869,14 @@ class CWRExport(models.Model):
             controlled_writer_ids,
             copublished_writer_ids,
         ) = self.calculate_publisher_shares(work)
-
         publisher = work["writers"][0]["original_publishers"][0]["publisher"]
-
         yield from self.yield_publisher_lines(
             publisher, controlled_relative_share
         )
-
         yield from self.yield_other_publisher_lines(other_publisher_share)
 
         # SWR, SWT, PWR
+
         yield from self.yield_controlled_writer_lines(
             work,
             publisher,
@@ -1920,9 +1886,11 @@ class CWRExport(models.Model):
         )
 
         # OWR
+
         yield from self.yield_other_writer_lines(
             work, controlled_writer_ids, other_publisher_share
         )
+
     def get_alt_lines(self, work):
         alt_titles = set()
         for at in work["other_titles"]:
