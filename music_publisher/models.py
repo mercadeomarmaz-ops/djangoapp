@@ -1520,7 +1520,7 @@ class CWRExport(models.Model):
         Returns:
             str: CWR file name
         """
-        return "CW{}{:04}{}_000.V{}".format(
+        return "CW{}{:04}{}_061.V{}".format(
             self.year,
             self.num_in_year,
             self.publisher_code or settings.PUBLISHER_CODE,
