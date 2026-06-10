@@ -1520,13 +1520,13 @@ class CWRExport(models.Model):
         Returns:
             str: CWR file name
         """
-       return "CW{}{:04}{}_{}.V{}".format(
-    self.year,
-    self.num_in_year,
-    self.publisher_code or settings.PUBLISHER_CODE,
-    getattr(settings, "CWR_RECEIVER_CODE", "061"),
-    self.version,
-)
+        return "CW{}{:04}{}_{}.V{}".format(
+            self.year,
+            self.num_in_year,
+            self.publisher_code or settings.PUBLISHER_CODE,
+            getattr(settings, "CWR_RECEIVER_CODE", "061"),
+            self.version,
+        )
 
     def __str__(self):
         return self.filename
@@ -1815,19 +1815,20 @@ class CWRExport(models.Model):
         copublished_writer_ids,
         other_publisher_share,
     ):
-reported_writers = set()
+        reported_writers = set()
 
-for wiw in work["writers"]:
-    if not wiw["controlled"]:
-        continue  # goes to OWR
+        for wiw in work["writers"]:
+            if not wiw["controlled"]:
+                continue  # goes to OWR
 
-    w = wiw["writer"]
-    writer_key = w.get("ipi_name_number") or w.get("code")
+            w = wiw["writer"]
+            writer_key = w.get("ipi_name_number") or w.get("code")
 
-    if writer_key in reported_writers:
-        continue
+            if writer_key in reported_writers:
+                continue
 
-    reported_writers.add(writer_key)
+            reported_writers.add(writer_key)
+
             agr = wiw["original_publishers"][0]["agreement"]
             saan = agr["recipient_agreement_number"] if agr else None
             affiliations = w.get("affiliations", [])
@@ -1859,12 +1860,12 @@ for wiw in work["writers"]:
             if share:
                 yield self.get_transaction_record("MAN", w)
             w["publisher_sequence"] = 1
-w["publisher_code"] = "P000001"
-w["publisher_name"] = (
-    settings.ORIGINAL_PUBLISHER_NAME
-    if getattr(settings, "ORIGINAL_PUBLISHER_IPI_NAME", "")
-    else publisher["name"]
-)
+            w["publisher_code"] = "P000001"
+            w["publisher_name"] = (
+                settings.ORIGINAL_PUBLISHER_NAME
+                if getattr(settings, "ORIGINAL_PUBLISHER_IPI_NAME", "")
+                else publisher["name"]
+            )
             yield self.get_transaction_record("PWR", w)
             copublished = (
                 self.version in ["30", "31"]
