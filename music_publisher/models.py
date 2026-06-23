@@ -1679,9 +1679,9 @@ class CWRExport(models.Model):
                 "pr_society": settings.ORIGINAL_PUBLISHER_SOCIETY_PR,
                 "mr_society": settings.ORIGINAL_PUBLISHER_SOCIETY_MR,
                 "sr_society": settings.ORIGINAL_PUBLISHER_SOCIETY_SR,
-                "pr_share": pr_share,
-                "mr_share": mr_share,
-                "sr_share": sr_share,
+                "pr_share": 0,
+                "mr_share": 0,
+                "sr_share": 0,
             },
         )
 
@@ -1697,9 +1697,9 @@ class CWRExport(models.Model):
                 "pr_society": publisher.get("pr_society"),
                 "mr_society": publisher.get("mr_society"),
                 "sr_society": publisher.get("sr_society"),
-                "pr_share": 0,
-                "mr_share": 0,
-                "sr_share": 0,
+                "pr_share": pr_share,
+                "mr_share": mr_share,
+                "sr_share": sr_share,
             },
         )
 
