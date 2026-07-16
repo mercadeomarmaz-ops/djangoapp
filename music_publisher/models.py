@@ -1810,14 +1810,10 @@ class CWRExport(models.Model):
                 yield self.get_transaction_record("SWT", w)
             if share:
                 yield self.get_transaction_record("MAN", w)
-            w["publisher_sequence"] = 1
-            w["publisher_code"] = "P000001"
-            w["publisher_name"] = (
-                settings.ORIGINAL_PUBLISHER_NAME
-                if getattr(settings, "ORIGINAL_PUBLISHER_IPI_NAME", "")
-                else publisher["name"]
-            )
-            yield self.get_transaction_record("PWR", w)
+                       w["publisher_sequence"] = 1
+                w["publisher_code"] = "P000001"
+                w["publisher_name"] = publisher["name"]
+                yield self.get_transaction_record("PWR", w)
             copublished = (
                 self.version in ["30", "31"]
                 and other_publisher_share
