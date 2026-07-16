@@ -126,42 +126,58 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = not DEBUG
 
 # The name of the publisher. Use no comma in the name!
-PUBLISHER_NAME = os.getenv("PUBLISHER", "DMP - FREE MUSIC CATALOGUE SOFTWARE")
+#
+# CONFIGURACION PARA SADAIC:
+# MARMAZ queda como EDITOR ORIGINAL.
+# Esto significa que el CWR generara un solo SPU:
+# P000001 = MARMAZ / Publisher Type E / Chain Sequence 01.
+#
+# IMPORTANTE:
+# No configurar ORIGINAL_PUBLISHER_* para este caso.
 
-# CWR Delivery code, issued by collecting societies
+PUBLISHER_NAME = os.getenv(
+    "PUBLISHER",
+    os.getenv("PUBLISHER_NAME", "CORPORACION MARMAZ SAS"),
+)
+
+# CWR Delivery code, issued by collecting societies.
 PUBLISHER_CODE = os.getenv("PUBLISHER_CODE", "84")
 
-# IPI Name # is required, issued by collecting societies
+# IPI Name Number del editor original MARMAZ.
 PUBLISHER_IPI_NAME = os.getenv("PUBLISHER_IPI_NAME", "01135451385")
-# IPI Base # is rarely used, issued by collecting societies
-PUBLISHER_IPI_BASE = os.getenv("PUBLISHER_IPI_BASE", None)
 
-# Affiliation societies for performance, mechanical and sync rights
-# Numerical value as string without the leading zero:
-# '52' for PRS, '44' for MCPS, '10' for ASCAP, '34' for HFA. etc.
-# see  music_publisher/societies.csv
+# IPI Base Number. Si no lo tienes, dejar vacio.
+PUBLISHER_IPI_BASE = os.getenv("PUBLISHER_IPI_BASE", "")
+
+# Sociedades del editor original.
+# Para SADAIC usa 61 sin cero inicial.
 PUBLISHER_SOCIETY_PR = os.getenv("PUBLISHER_SOCIETY_PR", "61")
 PUBLISHER_SOCIETY_MR = os.getenv("PUBLISHER_SOCIETY_MR", "61")
 PUBLISHER_SOCIETY_SR = os.getenv("PUBLISHER_SOCIETY_SR", "61")
-# Original Publisher / EO used when MARMAZ is acting as SE for SADAIC.
-# These values must be filled in DigitalOcean.
-ORIGINAL_PUBLISHER_NAME = os.getenv("ORIGINAL_PUBLISHER_NAME", "")
-ORIGINAL_PUBLISHER_CODE = os.getenv("ORIGINAL_PUBLISHER_CODE", "P000001")
-ORIGINAL_PUBLISHER_IPI_NAME = os.getenv("ORIGINAL_PUBLISHER_IPI_NAME", "")
-ORIGINAL_PUBLISHER_IPI_BASE = os.getenv("ORIGINAL_PUBLISHER_IPI_BASE", "")
-ORIGINAL_PUBLISHER_SOCIETY_PR = os.getenv("ORIGINAL_PUBLISHER_SOCIETY_PR", "")
-ORIGINAL_PUBLISHER_SOCIETY_MR = os.getenv("ORIGINAL_PUBLISHER_SOCIETY_MR", "")
-ORIGINAL_PUBLISHER_SOCIETY_SR = os.getenv("ORIGINAL_PUBLISHER_SOCIETY_SR", "")
 
+# Receiver code de SADAIC.
 CWR_RECEIVER_CODE = os.getenv("CWR_RECEIVER_CODE", "061")
 
-# Shares transferred to the original publisher, default to 50%/100%/100%
+# No se usa editor original externo.
+# MARMAZ sera siempre el editor original en el CWR.
+ORIGINAL_PUBLISHER_NAME = ""
+ORIGINAL_PUBLISHER_CODE = ""
+ORIGINAL_PUBLISHER_IPI_NAME = ""
+ORIGINAL_PUBLISHER_IPI_BASE = ""
+ORIGINAL_PUBLISHER_SOCIETY_PR = ""
+ORIGINAL_PUBLISHER_SOCIETY_MR = ""
+ORIGINAL_PUBLISHER_SOCIETY_SR = ""
+
+# Shares transferidos al editor original MARMAZ.
+# 0.50 = 50%.
 PUBLISHING_AGREEMENT_PUBLISHER_PR = Decimal(
     os.getenv("PUBLISHING_AGREEMENT_PUBLISHER_PR", "0.50")
 )
+
 PUBLISHING_AGREEMENT_PUBLISHER_MR = Decimal(
     os.getenv("PUBLISHING_AGREEMENT_PUBLISHER_MR", "0.50")
 )
+
 PUBLISHING_AGREEMENT_PUBLISHER_SR = Decimal(
     os.getenv("PUBLISHING_AGREEMENT_PUBLISHER_SR", "0.50")
 )
