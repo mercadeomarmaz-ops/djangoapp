@@ -1607,99 +1607,50 @@ class CWRExport(models.Model):
 
             self.transaction_count += 1
 
-    def yield_publisher_lines(self, publisher, controlled_relative_share):
-        """Yield SPU/SPT lines.
+       def _publisher_with_societies(self, publisher):
+        publisher = dict(publisher or {})
 
-        If ORIGINAL_PUBLISHER_IPI_NAME is configured, generate:
-        - EO / Original Publisher as P000001 with role E
-        - MARMAZ as P000002 with role SE
-        """
+        publisher.setdefault("pr_society", "")
+        publisher.setdefault("mr_society", "")
+        publisher.setdefault("sr_society", "")
 
         affiliations = publisher.get("affiliations", [])
+
         for aff in affiliations:
-            if aff["affiliation_type"]["code"] == "PR":
-                publisher["pr_society"] = aff["organization"]["code"]
-            elif aff["affiliation_type"]["code"] == "MR":
-                publisher["mr_society"] = aff["organization"]["code"]
-            elif aff["affiliation_type"]["code"] == "SR":
-                publisher["sr_society"] = aff["organization"]["code"]
+            affiliation_type = aff.get("affiliation_type", {}).get("code")
+            organization_code = aff.get("organization", {}).get("code")
+
+            if affiliation_type == "PR":
+                publisher["pr_society"] = organization_code
+            elif affiliation_type == "MR":
+                publisher["mr_society"] = organization_code
+            elif affiliation_type == "SR":
+                publisher["sr_society"] = organization_code
+
+        return publisher
+
+    def yield_publisher_lines(self, publisher, controlled_relative_share):
+        publisher = self._publisher_with_societies(publisher)
 
         pr_share = controlled_relative_share * self.agreement_pr
         mr_share = controlled_relative_share * self.agreement_mr
         sr_share = controlled_relative_share * self.agreement_sr
 
-        original_ipi = getattr(settings, "ORIGINAL_PUBLISHER_IPI_NAME", "")
-
-        # Normal behavior: one publisher only.
-        if not original_ipi:
-            yield self.get_transaction_record(
-                "SPU",
-                {
-                    "chain_sequence": 1,
-                    "name": publisher.get("name"),
-                    "code": "P000001",
-                    "role": "E ",
-                    "ipi_name_number": publisher.get("ipi_name_number"),
-                    "ipi_base_number": publisher.get("ipi_base_number"),
-                    "pr_society": publisher.get("pr_society"),
-                    "mr_society": publisher.get("mr_society"),
-                    "sr_society": publisher.get("sr_society"),
-                    "pr_share": pr_share,
-                    "mr_share": mr_share,
-                    "sr_share": sr_share,
-                },
-            )
-            if controlled_relative_share:
-                yield self.get_transaction_record(
-                    "SPT",
-                    {
-                        "code": "P000001",
-                        "pr_share": pr_share,
-                        "mr_share": mr_share,
-                        "sr_share": sr_share,
-                        "pr_society": publisher.get("pr_society"),
-                        "mr_society": publisher.get("mr_society"),
-                        "sr_society": publisher.get("sr_society"),
-                    },
-                )
-            return
-
-        # SADAIC representation behavior:
-        # P000001 = EO / original publisher, with ownership shares.
-        # P000002 = MARMAZ / SE, with collection shares for Argentina.
         yield self.get_transaction_record(
             "SPU",
             {
                 "chain_sequence": 1,
-                "name": settings.ORIGINAL_PUBLISHER_NAME,
+                "name": publisher.get("name"),
                 "code": "P000001",
                 "role": "E ",
-                "ipi_name_number": settings.ORIGINAL_PUBLISHER_IPI_NAME,
-                "ipi_base_number": settings.ORIGINAL_PUBLISHER_IPI_BASE,
-                "pr_society": settings.ORIGINAL_PUBLISHER_SOCIETY_PR,
-                "mr_society": settings.ORIGINAL_PUBLISHER_SOCIETY_MR,
-                "sr_society": settings.ORIGINAL_PUBLISHER_SOCIETY_SR,
-                "pr_share": pr_share,
-                "mr_share": mr_share,
-                "sr_share": sr_share,
-            },
-        )
-
-        yield self.get_transaction_record(
-            "SPU",
-            {
-                "chain_sequence": 2,
-                "name": publisher.get("name"),
-                "code": "P000002",
-                "role": "SE",
                 "ipi_name_number": publisher.get("ipi_name_number"),
                 "ipi_base_number": publisher.get("ipi_base_number"),
                 "pr_society": publisher.get("pr_society"),
                 "mr_society": publisher.get("mr_society"),
                 "sr_society": publisher.get("sr_society"),
-                "pr_share": 0,
-                "mr_share": 0,
-                "sr_share": 0,
+                "pr_share": pr_share,
+                "mr_share": mr_share,
+                "sr_share": sr_share,
             },
         )
 
@@ -1707,7 +1658,7 @@ class CWRExport(models.Model):
             yield self.get_transaction_record(
                 "SPT",
                 {
-                    "code": "P000002",
+                    "code": "P000001",
                     "pr_share": pr_share,
                     "mr_share": mr_share,
                     "sr_share": sr_share,
