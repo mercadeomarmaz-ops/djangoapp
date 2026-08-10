@@ -55,7 +55,7 @@ TEMPLATES_21 = {
         "{{ pr_society|soc }}{{ pr_share|default:0|cwrshare }}"
         "{{ mr_society|soc }}{{ mr_share|default:0|cwrshare }}"
         "{{ sr_society|soc }}{{ sr_share|default:0|cwrshare }}"
-        + " " * 46
+        + " " * 47
         + "\r\n{% endautoescape %}"
     ),
     "SWT": Template(
