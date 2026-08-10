@@ -4,8 +4,9 @@ Django settings for dmp_project project.
 
 import csv
 import os
-import dj_database_url
 from decimal import Decimal
+
+import dj_database_url
 
 SOFTWARE = "DJANGO MUSIC PUBLISHER"
 SOFTWARE_VERSION = "24.12 HOLIDAY SPECIAL"
@@ -19,7 +20,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", None)
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS","").split(",")
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
 
 INSTALLED_APPS = [
     "music_publisher.apps.MusicPublisherConfig",
@@ -92,30 +93,21 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
 STATIC_URL = os.getenv("STATIC_URL", "/static/")
-
 STATIC_ROOT = os.getenv("STATIC_ROOT", os.path.join(BASE_DIR, "static"))
-
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "dmp_project", "static"),
-]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "dmp_project", "static")]
 
 TIME_INPUT_FORMATS = [
-    "%H:%M:%S",  # '14:30:59'
-    "%M:%S",  # '14:30'
+    "%H:%M:%S",
+    "%M:%S",
 ]
 
 LOGIN_URL = "/login/"
-
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
 CSRF_COOKIE_SECURE = not DEBUG
@@ -125,59 +117,83 @@ SECURE_HSTS_PRELOAD = not DEBUG
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = not DEBUG
 
-# The name of the publisher. Use no comma in the name!
-#
-# CONFIGURACION PARA SADAIC:
-# MARMAZ queda como EDITOR ORIGINAL.
-# Esto significa que el CWR generara un solo SPU:
-# P000001 = MARMAZ / Publisher Type E / Chain Sequence 01.
-#
-# IMPORTANTE:
-# No configurar ORIGINAL_PUBLISHER_* para este caso.
 
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return bool(default)
+    return value.strip().lower() in ("1", "true", "yes", "y", "on")
+
+
+# -----------------------------------------------------------------------------
+# CWR / SADAIC CONFIGURATION
+# -----------------------------------------------------------------------------
+# Estructura esperada por SADAIC segun el archivo corregido por ellos:
+#
+# SPU 01 803318077 MARMAZ PUBLISHING        E
+# SPU 01 113545138 CORPORACION MARMAZ SAS   SE
+# SPT    113545138                          05000 05000 05000 I0032
+# SWR    writer IP                          00000 00000 00000
+# SWT    writer IP                          05000 05000 05000 I0032
+# PWR    803318077 MARMAZ PUBLISHING        -> writer IP
+#
+# MARMAZ PUBLISHING es el editor original (E).
+# CORPORACION MARMAZ SAS es el subpublisher/local publisher (SE).
+# -----------------------------------------------------------------------------
+
+# Publisher que envia el CWR / subpublisher local.
 PUBLISHER_NAME = os.getenv(
     "PUBLISHER",
     os.getenv("PUBLISHER_NAME", "CORPORACION MARMAZ SAS"),
 )
-
-# CWR Delivery code, issued by collecting societies.
+PUBLISHER = PUBLISHER_NAME
 PUBLISHER_CODE = os.getenv("PUBLISHER_CODE", "84")
-
-# IPI Name Number del editor original MARMAZ.
 PUBLISHER_IPI_NAME = os.getenv("PUBLISHER_IPI_NAME", "01135451385")
-
-# IPI Base Number. Si no lo tienes, dejar vacio.
 PUBLISHER_IPI_BASE = os.getenv("PUBLISHER_IPI_BASE", "")
+PUBLISHER_SOCIETY_PR = os.getenv("PUBLISHER_SOCIETY_PR", "061")
+PUBLISHER_SOCIETY_MR = os.getenv("PUBLISHER_SOCIETY_MR", "061")
+PUBLISHER_SOCIETY_SR = os.getenv("PUBLISHER_SOCIETY_SR", "061")
 
-# Sociedades del editor original.
-# Para SADAIC usa 61 sin cero inicial.
-PUBLISHER_SOCIETY_PR = os.getenv("PUBLISHER_SOCIETY_PR", "61")
-PUBLISHER_SOCIETY_MR = os.getenv("PUBLISHER_SOCIETY_MR", "61")
-PUBLISHER_SOCIETY_SR = os.getenv("PUBLISHER_SOCIETY_SR", "61")
+# Editor original.
+ORIGINAL_PUBLISHER_NAME = os.getenv(
+    "ORIGINAL_PUBLISHER_NAME", "MARMAZ PUBLISHING"
+)
+ORIGINAL_PUBLISHER_CODE = os.getenv("ORIGINAL_PUBLISHER_CODE", "803318077")
+ORIGINAL_PUBLISHER_IPI_NAME = os.getenv(
+    "ORIGINAL_PUBLISHER_IPI_NAME", "00803318077"
+)
+ORIGINAL_PUBLISHER_IPI_BASE = os.getenv("ORIGINAL_PUBLISHER_IPI_BASE", "")
+ORIGINAL_PUBLISHER_SOCIETY_PR = os.getenv("ORIGINAL_PUBLISHER_SOCIETY_PR", "010")
+ORIGINAL_PUBLISHER_SOCIETY_MR = os.getenv("ORIGINAL_PUBLISHER_SOCIETY_MR", "099")
+ORIGINAL_PUBLISHER_SOCIETY_SR = os.getenv("ORIGINAL_PUBLISHER_SOCIETY_SR", "099")
 
-# Receiver code de SADAIC.
+# Receiver code SADAIC.
 CWR_RECEIVER_CODE = os.getenv("CWR_RECEIVER_CODE", "061")
 
-# No se usa editor original externo.
-# MARMAZ sera siempre el editor original en el CWR.
-ORIGINAL_PUBLISHER_NAME = ""
-ORIGINAL_PUBLISHER_CODE = ""
-ORIGINAL_PUBLISHER_IPI_NAME = ""
-ORIGINAL_PUBLISHER_IPI_BASE = ""
-ORIGINAL_PUBLISHER_SOCIETY_PR = ""
-ORIGINAL_PUBLISHER_SOCIETY_MR = ""
-ORIGINAL_PUBLISHER_SOCIETY_SR = ""
+# Argentina / SADAIC: I0032.
+CWR_TERRITORY_CODE = os.getenv("CWR_TERRITORY_CODE", "0032")
 
-# Shares transferidos al editor original MARMAZ.
+# En el ejemplo corregido de SADAIC el flag queda en blanco.
+CWR_SHARES_CHANGE_FLAG = os.getenv("CWR_SHARES_CHANGE_FLAG", " ")
+
+# Modo especial para SADAIC.
+SADAIC_CWR_MODE = env_bool("SADAIC_CWR_MODE", True)
+SADAIC_ZERO_OWNERSHIP_SHARES = env_bool(
+    "SADAIC_ZERO_OWNERSHIP_SHARES", True
+)
+SADAIC_SKIP_REC = env_bool("SADAIC_SKIP_REC", True)
+SADAIC_PWR_SUBMITTER_AGREEMENT = os.getenv(
+    "SADAIC_PWR_SUBMITTER_AGREEMENT", "1"
+)
+
+# Shares de coleccion.
 # 0.50 = 50%.
 PUBLISHING_AGREEMENT_PUBLISHER_PR = Decimal(
     os.getenv("PUBLISHING_AGREEMENT_PUBLISHER_PR", "0.50")
 )
-
 PUBLISHING_AGREEMENT_PUBLISHER_MR = Decimal(
     os.getenv("PUBLISHING_AGREEMENT_PUBLISHER_MR", "0.50")
 )
-
 PUBLISHING_AGREEMENT_PUBLISHER_SR = Decimal(
     os.getenv("PUBLISHING_AGREEMENT_PUBLISHER_SR", "0.50")
 )
@@ -191,14 +207,6 @@ OPTION_FORCE_CASE = os.getenv("OPTION_FORCE_CASE")
 
 
 # REMOTE FILES
-# The default is Digital Ocean Spaces, but any S3 should work with AWS
-# and any other S3. Support DMP by using the affiliation links below.
-# For Digital Ocean (https://www.digitalocean.com/?refcode=b05ea0e8ec84),
-# you must set https://cloud.digitalocean.com/spaces/new?refcode=b05ea0e8ec84
-# S3_BUCKET (name), S3_REGION (region code, fra1, lon3, etc.
-# and https://cloud.digitalocean.com/account/api/tokens?refcode=b05ea0e8ec84
-# S3_ID, S3 SECRET
-
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID") or os.getenv("S3_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY") or os.getenv(
     "S3_SECRET"
@@ -213,7 +221,6 @@ AWS_S3_ENDPOINT_URL = (
 )
 AWS_QUERYSTRING_EXPIRE = os.getenv("AWS_QUERYSTRING_EXPIRE", 900)
 
-
 S3_ENABLED = all(
     [
         AWS_S3_REGION_NAME,
@@ -227,10 +234,8 @@ OPTION_FILES = os.getenv("OPTION_FILES", S3_ENABLED)
 
 if OPTION_FILES:
     if S3_ENABLED:
-        # S3 media, use the bucket root
         DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
     else:
-        # normal file storage
         MEDIA_URL = os.getenv("MEDIA_URL", "/media/")
         MEDIA_ROOT = os.getenv("MEDIA_ROOT", os.path.join(BASE_DIR, "media"))
 
