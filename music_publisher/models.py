@@ -1029,11 +1029,9 @@ class CWRExport(models.Model):
             spt_data = {
                 "code": publisher["cwr_code"],
                 "cwr_code": publisher["cwr_code"],
-
                 "collection_pr_share": collection_pr_share,
                 "collection_mr_share": collection_mr_share,
                 "collection_sr_share": collection_sr_share,
-
                 "pr_share": collection_pr_share,
                 "mr_share": collection_mr_share,
                 "sr_share": collection_sr_share,
@@ -1425,4 +1423,3 @@ def recording_pre_save(sender, instance, **kwargs):
 def track_pre_save(sender, instance, **kwargs):
     if instance.recording_id and instance.recording.work_id:
         Work.objects.filter(pk=instance.recording.work_id).update(last_change=timezone.now())
-
