@@ -58,15 +58,14 @@ TEMPLATES_21 = {
         + " " * 46
         + "\r\n{% endautoescape %}"
     ),
-    "SPT": Template(
+    "SWT": Template(
         "{% load cwr_generators %}{% autoescape off %}"
-        "SPT{{ transaction_sequence|rjust:8 }}"
+        "SWT{{ transaction_sequence|rjust:8 }}"
         "{{ record_sequence|rjust:8 }}"
         "{{ cwr_code|default:code|ljust:9 }}"
-        "      "
-        "{{ collection_pr_share|default:pr_share|default:0|cwrshare }}"
-        "{{ collection_mr_share|default:mr_share|default:0|cwrshare }}"
-        "{{ collection_sr_share|default:sr_share|default:0|cwrshare }}"
+        "{{ collection_pr_share|default:0|cwrshare }}"
+        "{{ collection_mr_share|default:0|cwrshare }}"
+        "{{ collection_sr_share|default:0|cwrshare }}"
         "I{{ territory_code|default:'0032'|ljust:4 }}"
         "{{ shares_change|default:' '|ljust:1 }}"
         "{{ territory_sequence|default:'001'|ljust:3 }}"
