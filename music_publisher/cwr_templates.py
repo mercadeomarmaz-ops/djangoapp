@@ -58,11 +58,12 @@ TEMPLATES_21 = {
         + " " * 47
         + "\r\n{% endautoescape %}"
     ),
-    "SWT": Template(
+    "SPT": Template(
         "{% load cwr_generators %}{% autoescape off %}"
-        "SWT{{ transaction_sequence|rjust:8 }}"
+        "SPT{{ transaction_sequence|rjust:8 }}"
         "{{ record_sequence|rjust:8 }}"
         "{{ cwr_code|default:code|ljust:9 }}"
+        "      "
         "{{ collection_pr_share|default:0|cwrshare }}"
         "{{ collection_mr_share|default:0|cwrshare }}"
         "{{ collection_sr_share|default:0|cwrshare }}"
@@ -94,9 +95,9 @@ TEMPLATES_21 = {
         "SWT{{ transaction_sequence|rjust:8 }}"
         "{{ record_sequence|rjust:8 }}"
         "{{ cwr_code|default:code|ljust:9 }}"
-        "{{ collection_pr_share|default:pr_share|default:0|cwrshare }}"
-        "{{ collection_mr_share|default:mr_share|default:0|cwrshare }}"
-        "{{ collection_sr_share|default:sr_share|default:0|cwrshare }}"
+        "{{ collection_pr_share|default:0|cwrshare }}"
+        "{{ collection_mr_share|default:0|cwrshare }}"
+        "{{ collection_sr_share|default:0|cwrshare }}"
         "I{{ territory_code|default:'0032'|ljust:4 }}"
         "{{ shares_change|default:' '|ljust:1 }}"
         "{{ territory_sequence|default:'001'|ljust:3 }}"
@@ -241,3 +242,4 @@ TEMPLATES_22.update(
 # CWR 3.x is kept as a fallback copy so imports do not fail. SADAIC export must use CWR 2.1/NWR.
 TEMPLATES_30 = TEMPLATES_21.copy()
 TEMPLATES_31 = TEMPLATES_30.copy()
+
