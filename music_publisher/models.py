@@ -1026,24 +1026,20 @@ class CWRExport(models.Model):
                 },
             )
 
-            if controlled_relative_share:
-                spt_data = {
-                    "code": publisher["cwr_code"],
-                    "cwr_code": publisher["cwr_code"],
+            spt_data = {
+                "code": publisher["cwr_code"],
+                "cwr_code": publisher["cwr_code"],
 
-                    # Shares de coleccion para SADAIC.
-                    "collection_pr_share": collection_pr_share,
-                    "collection_mr_share": collection_mr_share,
-                    "collection_sr_share": collection_sr_share,
+                "collection_pr_share": collection_pr_share,
+                "collection_mr_share": collection_mr_share,
+                "collection_sr_share": collection_sr_share,
 
-                    # Aliases defensivos para evitar errores de template
-                    # si algun template intenta leer pr_share/mr_share/sr_share.
-                    "pr_share": collection_pr_share,
-                    "mr_share": collection_mr_share,
-                    "sr_share": collection_sr_share,
-                }
-                spt_data.update(self._sadaic_territory_data())
-                yield self.get_transaction_record("SPT", spt_data)
+                "pr_share": collection_pr_share,
+                "mr_share": collection_mr_share,
+                "sr_share": collection_sr_share,
+            }
+            spt_data.update(self._sadaic_territory_data())
+            yield self.get_transaction_record("SPT", spt_data)
             return
 
         yield self.get_transaction_record(
