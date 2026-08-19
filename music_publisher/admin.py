@@ -1056,6 +1056,9 @@ class WorkAdmin(MusicPublisherAdmin):
     ordering = ("-id",)
     form = WorkForm
 
+    # Mostrar 1000 obras por pagina en Musical Works.
+    list_per_page = 1000
+
     inlines = (
         WriterInWorkInline,
         RecordingInline,
