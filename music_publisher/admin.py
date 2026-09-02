@@ -1054,6 +1054,7 @@ class WorkAdmin(MusicPublisherAdmin):
     """
 
     ordering = ("-id",)
+    list_per_page = 1000
     form = WorkForm
 
     inlines = (
