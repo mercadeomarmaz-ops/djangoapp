@@ -35,11 +35,26 @@ def ljust(value, length):
 
 @register.filter(name="soc")
 def soc(value):
-    """Format society fields."""
+    """Format society fields as exactly 3 fixed-width characters.
+
+    Examples:
+    61   -> 061
+    061  -> 061
+    ""   -> three spaces
+    " "  -> three spaces
+    None -> three spaces
+    """
+    value = str(value or "").strip()
+
     if not value:
-        return " "
-    value = value.rjust(3, "0")
-    return value
+        return "   "
+
+    digits = "".join(ch for ch in value if ch.isdigit())
+
+    if not digits:
+        return "   "
+
+    return digits.zfill(3)[-3:]
 
 
 @register.filter(name="cwrparty")
