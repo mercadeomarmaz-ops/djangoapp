@@ -5,7 +5,7 @@ from django.template import Template
 TEMPLATES_21 = {
     "HDR": Template(
         "{% load cwr_generators %}{% autoescape off %}"
-        'HDRPB{{ ipi_name_number|rjust:11|slice:"2:" }}'
+       'HDRPB{{ ipi_name_number|cwrparty }}'
         "{{ name|ljust:45 }}01.10"
         '{{ creation_date|date:"Ymd" }}'
         '{{ creation_date|date:"His" }}'
@@ -14,7 +14,7 @@ TEMPLATES_21 = {
     ),
     "HDR_8": Template(
         "{% load cwr_generators %}{% autoescape off %}"
-        "HDR{{ ipi_name_number|rjust:11 }}"
+        "HDRPB{{ ipi_name_number|cwrparty }}"
         "{{ name|ljust:45 }}01.10"
         '{{ creation_date|date:"Ymd" }}'
         '{{ creation_date|date:"His" }}'
@@ -202,7 +202,7 @@ TEMPLATES_22.update(
     {
         "HDR": Template(
             "{% load cwr_generators %}{% autoescape off %}"
-            'HDRPB{{ ipi_name_number|rjust:11|slice:"2:" }}'
+            'HDRPB{{ ipi_name_number|cwrparty }}'
             "{{ name|ljust:45 }}01.10"
             '{{ creation_date|date:"Ymd" }}'
             '{{ creation_date|date:"His" }}'
@@ -212,7 +212,7 @@ TEMPLATES_22.update(
         ),
         "HDR_8": Template(
             "{% load cwr_generators %}{% autoescape off %}"
-            "HDR{{ ipi_name_number|rjust:11 }}"
+            "HDRPB{{ ipi_name_number|cwrparty }}"
             "{{ name|ljust:45 }}01.10"
             '{{ creation_date|date:"Ymd" }}'
             '{{ creation_date|date:"His" }}'
