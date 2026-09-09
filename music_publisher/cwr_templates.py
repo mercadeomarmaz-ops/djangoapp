@@ -14,7 +14,7 @@ TEMPLATES_21 = {
     ),
     "HDR_8": Template(
         "{% load cwr_generators %}{% autoescape off %}"
-        "HDRPB{{ ipi_name_number|cwrparty }}"
+        "HDR{{ ipi_name_number|rjust:11 }}"
         "{{ name|ljust:45 }}01.10"
         '{{ creation_date|date:"Ymd" }}'
         '{{ creation_date|date:"His" }}'
@@ -212,7 +212,7 @@ TEMPLATES_22.update(
         ),
         "HDR_8": Template(
             "{% load cwr_generators %}{% autoescape off %}"
-            "HDRPB{{ ipi_name_number|cwrparty }}"
+            "HDR{{ ipi_name_number|rjust:11 }}"
             "{{ name|ljust:45 }}01.10"
             '{{ creation_date|date:"Ymd" }}'
             '{{ creation_date|date:"His" }}'
