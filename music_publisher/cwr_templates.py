@@ -5,7 +5,7 @@ from django.template import Template
 TEMPLATES_21 = {
     "HDR": Template(
         "{% load cwr_generators %}{% autoescape off %}"
-       'HDRPB{{ ipi_name_number|cwrparty }}'
+       'HDRPB{{ ipi_name_number|rjust:11 }}'
         "{{ name|ljust:45 }}01.10"
         '{{ creation_date|date:"Ymd" }}'
         '{{ creation_date|date:"His" }}'
@@ -202,7 +202,7 @@ TEMPLATES_22.update(
     {
         "HDR": Template(
             "{% load cwr_generators %}{% autoescape off %}"
-            'HDRPB{{ ipi_name_number|cwrparty }}'
+            'HDRPB{{ ipi_name_number|rjust:11 }}'
             "{{ name|ljust:45 }}01.10"
             '{{ creation_date|date:"Ymd" }}'
             '{{ creation_date|date:"His" }}'
