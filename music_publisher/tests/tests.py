@@ -1812,9 +1812,13 @@ class CWRTemplatesTest(SimpleTestCase):
                 "record_sequence": None,
                 "first_name": None,
                 "pr_society": "10",
+                "code": None,
+                "publisher_code": None,
+                "settings": settings,
                 "share": Decimal("0.5"),
             }
             self.assertIsInstance(template.render(Context(d)).upper(), str)
+
         self.assertIsInstance(cwr_templates.TEMPLATES_22, dict)
         for i, key in enumerate(self.RECORD_TYPES):
             self.assertIn(key, cwr_templates.TEMPLATES_22)
@@ -1824,6 +1828,9 @@ class CWRTemplatesTest(SimpleTestCase):
                 "record_sequence": None,
                 "first_name": None,
                 "pr_society": "10",
+                "code": None,
+                "publisher_code": None,
+                "settings": settings,
                 "share": Decimal("0.5"),
             }
             self.assertIsInstance(template.render(Context(d)).upper(), str)
@@ -1836,9 +1843,64 @@ class CWRTemplatesTest(SimpleTestCase):
                 "record_sequence": None,
                 "first_name": None,
                 "pr_society": "10",
+                "code": None,
+                "publisher_code": None,
+                "settings": settings,
                 "share": Decimal("0.5"),
             }
             self.assertIsInstance(template.render(Context(d)).upper(), str)
+
+    def test_sadaic_header_uses_two_plus_nine_sender_layout(self):
+        """Use Sender Type + Sender ID for an agreed 11-digit IPI."""
+        for nwr_rev, expected_length in (("NWR", 101), ("NW2", 167)):
+            with self.subTest(nwr_rev=nwr_rev), self.settings(
+                PUBLISHER_IPI_NAME="01135451385",
+                PUBLISHER_NAME="CORPORACION MARMAZ SAS",
+            ):
+                header = CWRExport(nwr_rev=nwr_rev).get_header().encode("ascii")
+                self.assertTrue(header.endswith(b"\r\n"))
+                header_without_terminator = header[:-2]
+
+                self.assertEqual(header_without_terminator[0:3], b"HDR")
+                self.assertEqual(header_without_terminator[3:5], b"01")
+                self.assertEqual(header_without_terminator[5:14], b"135451385")
+                self.assertEqual(header_without_terminator[3:14], b"01135451385")
+                self.assertEqual(
+                    header_without_terminator[14:59],
+                    b"CORPORACION MARMAZ SAS".ljust(45, b" "),
+                )
+                self.assertEqual(header_without_terminator[59:64], b"01.10")
+                self.assertTrue(header_without_terminator[64:72].isdigit())
+                self.assertTrue(header_without_terminator[72:78].isdigit())
+                self.assertEqual(
+                    header_without_terminator[64:72],
+                    header_without_terminator[78:86],
+                )
+                self.assertEqual(len(header_without_terminator), expected_length)
+
+    def test_sadaic_header_keeps_normal_and_boundary_routes(self):
+        """Keep PB for nine digits and switch to 2 + 9 above that limit."""
+        cases = (
+            ("00803318077", b"HDRPB803318077"),
+            ("00999999999", b"HDRPB999999999"),
+            ("01000000000", b"HDR01000000000"),
+        )
+        for nwr_rev in ("NWR", "NW2"):
+            for ipi_name_number, expected_prefix in cases:
+                with self.subTest(
+                    nwr_rev=nwr_rev, ipi_name_number=ipi_name_number
+                ), self.settings(
+                    PUBLISHER_IPI_NAME=ipi_name_number,
+                    PUBLISHER_NAME="TEST PUBLISHER",
+                ):
+                    header = CWRExport(nwr_rev=nwr_rev).get_header().encode(
+                        "ascii"
+                    )
+                    self.assertEqual(header[0:14], expected_prefix)
+                    self.assertEqual(
+                        header[14:59], b"TEST PUBLISHER".ljust(45, b" ")
+                    )
+                    self.assertEqual(header[59:64], b"01.10")
 
 
 class ValidatorsTest(TestCase):
