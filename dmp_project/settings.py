@@ -126,35 +126,46 @@ def env_bool(name, default=False):
 
 
 # -----------------------------------------------------------------------------
-# CWR / SADAIC CONFIGURATION
+# CWR / SOCIETY PROFILE
 # -----------------------------------------------------------------------------
-# Estructura esperada por SADAIC segun el archivo corregido por ellos:
-#
-# SPU 01 803318077 MARMAZ PUBLISHING        E
-# SPU 01 113545138 CORPORACION MARMAZ SAS   SE
-# SPT    113545138                          05000 05000 05000 I0032
-# SWR    writer IP                          00000 00000 00000
-# SWT    writer IP                          05000 05000 05000 I0032
-# PWR    803318077 MARMAZ PUBLISHING        -> writer IP
-#
-# MARMAZ PUBLISHING es el editor original (E).
-# CORPORACION MARMAZ SAS es el subpublisher/local publisher (SE).
-# -----------------------------------------------------------------------------
+# This branch defaults to the AGADU layout validated against accepted delivery
+# CW26004584_000.V21.  SADAIC remains available as an explicit, separate
+# profile so its two-publisher rules cannot leak into AGADU exports.
+CWR_PROFILE = os.getenv("CWR_PROFILE", "AGADU").strip().upper()
 
-# Publisher que envia el CWR / subpublisher local.
+# Submitter/publisher accepted by AGADU.
 PUBLISHER_NAME = os.getenv(
     "PUBLISHER",
-    os.getenv("PUBLISHER_NAME", "CORPORACION MARMAZ SAS"),
+    os.getenv("PUBLISHER_NAME", "CORPORACION MARMAZ S.A.S."),
 )
 PUBLISHER = PUBLISHER_NAME
 PUBLISHER_CODE = os.getenv("PUBLISHER_CODE", "84")
 PUBLISHER_IPI_NAME = os.getenv("PUBLISHER_IPI_NAME", "01135451385")
 PUBLISHER_IPI_BASE = os.getenv("PUBLISHER_IPI_BASE", "")
-PUBLISHER_SOCIETY_PR = os.getenv("PUBLISHER_SOCIETY_PR", "061")
-PUBLISHER_SOCIETY_MR = os.getenv("PUBLISHER_SOCIETY_MR", "061")
-PUBLISHER_SOCIETY_SR = os.getenv("PUBLISHER_SOCIETY_SR", "061")
+PUBLISHER_SOCIETY_PR = os.getenv("PUBLISHER_SOCIETY_PR", "84")
+PUBLISHER_SOCIETY_MR = os.getenv("PUBLISHER_SOCIETY_MR", "84")
+PUBLISHER_SOCIETY_SR = os.getenv("PUBLISHER_SOCIETY_SR", "84")
 
-# Editor original.
+# AGADU-specific values observed in the accepted CWR and its final ACK.
+AGADU_RECEIVER_CODE = os.getenv("AGADU_RECEIVER_CODE", "000")
+AGADU_TERRITORY_CODE = os.getenv("AGADU_TERRITORY_CODE", "2136")
+AGADU_SHARES_CHANGE_FLAG = os.getenv("AGADU_SHARES_CHANGE_FLAG", "N")
+AGADU_TAX_ID = os.getenv("AGADU_TAX_ID", "000000000")
+
+# -----------------------------------------------------------------------------
+# SADAIC-SPECIFIC CONFIGURATION (inactive in the AGADU profile)
+# -----------------------------------------------------------------------------
+# SADAIC expects an original publisher (E), a local subpublisher (SE), zero
+# ownership shares, Argentina territory I0032, and no REC records.
+SADAIC_CWR_MODE = env_bool(
+    "SADAIC_CWR_MODE", CWR_PROFILE == "SADAIC"
+)
+AGADU_CWR_MODE = CWR_PROFILE == "AGADU" and not SADAIC_CWR_MODE
+SADAIC_RECEIVER_CODE = os.getenv("SADAIC_RECEIVER_CODE", "061")
+SADAIC_TERRITORY_CODE = os.getenv("SADAIC_TERRITORY_CODE", "0032")
+SADAIC_SHARES_CHANGE_FLAG = os.getenv("SADAIC_SHARES_CHANGE_FLAG", " ")
+
+# SADAIC original publisher.
 ORIGINAL_PUBLISHER_NAME = os.getenv(
     "ORIGINAL_PUBLISHER_NAME", "MARMAZ PUBLISHING"
 )
@@ -167,17 +178,6 @@ ORIGINAL_PUBLISHER_SOCIETY_PR = os.getenv("ORIGINAL_PUBLISHER_SOCIETY_PR", "010"
 ORIGINAL_PUBLISHER_SOCIETY_MR = os.getenv("ORIGINAL_PUBLISHER_SOCIETY_MR", "099")
 ORIGINAL_PUBLISHER_SOCIETY_SR = os.getenv("ORIGINAL_PUBLISHER_SOCIETY_SR", "099")
 
-# Receiver code SADAIC.
-CWR_RECEIVER_CODE = os.getenv("CWR_RECEIVER_CODE", "061")
-
-# Argentina / SADAIC: I0032.
-CWR_TERRITORY_CODE = os.getenv("CWR_TERRITORY_CODE", "0032")
-
-# En el ejemplo corregido de SADAIC el flag queda en blanco.
-CWR_SHARES_CHANGE_FLAG = os.getenv("CWR_SHARES_CHANGE_FLAG", " ")
-
-# Modo especial para SADAIC.
-SADAIC_CWR_MODE = env_bool("SADAIC_CWR_MODE", True)
 SADAIC_ZERO_OWNERSHIP_SHARES = env_bool(
     "SADAIC_ZERO_OWNERSHIP_SHARES", True
 )
@@ -185,6 +185,13 @@ SADAIC_SKIP_REC = env_bool("SADAIC_SKIP_REC", True)
 SADAIC_PWR_SUBMITTER_AGREEMENT = os.getenv(
     "SADAIC_PWR_SUBMITTER_AGREEMENT", "1"
 )
+
+# Backwards-compatible overrides used by filename generation and any external
+# configuration that still supplies the legacy CWR_* variables.
+_DEFAULT_RECEIVER_CODE = (
+    SADAIC_RECEIVER_CODE if SADAIC_CWR_MODE else AGADU_RECEIVER_CODE
+)
+CWR_RECEIVER_CODE = os.getenv("CWR_RECEIVER_CODE", _DEFAULT_RECEIVER_CODE)
 
 # Shares de coleccion.
 # 0.50 = 50%.

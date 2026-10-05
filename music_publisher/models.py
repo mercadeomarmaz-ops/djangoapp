@@ -30,6 +30,7 @@ from .base import (
 )
 from .cwr_templates import (
     TEMPLATES_21,
+    TEMPLATES_21_AGADU,
     TEMPLATES_22,
     TEMPLATES_30,
     TEMPLATES_31,
@@ -889,7 +890,12 @@ class CWRExport(models.Model):
         elif self.version == "31":
             template = TEMPLATES_31.get(key)
         else:
-            tdict = TEMPLATES_22 if self.version == "22" else TEMPLATES_21
+            if self.version == "21" and getattr(
+                settings, "AGADU_CWR_MODE", False
+            ):
+                tdict = TEMPLATES_21_AGADU
+            else:
+                tdict = TEMPLATES_22 if self.version == "22" else TEMPLATES_21
             if key == "HDR" and len(record["ipi_name_number"].lstrip("0")) > 9:
                 template = tdict.get("HDR_8")
             else:
@@ -937,10 +943,16 @@ class CWRExport(models.Model):
                 party["mr_society"] = organization_code
             elif affiliation_type == "SR":
                 party["sr_society"] = organization_code
-        party["cwr_code"] = self._cwr_party_code(
-            party.get("ipi_name_number") or party.get("code")
-        )
-        party["tax_id"] = " " * 9
+        if getattr(settings, "AGADU_CWR_MODE", False):
+            party["cwr_code"] = party.get("code", "")
+            party["tax_id"] = getattr(
+                settings, "AGADU_TAX_ID", "000000000"
+            )
+        else:
+            party["cwr_code"] = self._cwr_party_code(
+                party.get("ipi_name_number") or party.get("code")
+            )
+            party["tax_id"] = " " * 9
         return party
 
     def _publisher_with_societies(self, publisher):
@@ -959,10 +971,27 @@ class CWRExport(models.Model):
             "tax_id": " " * 9,
         }
 
-    def _sadaic_territory_data(self):
+    def _cwr_territory_data(self):
+        if getattr(settings, "SADAIC_CWR_MODE", False):
+            territory_code = getattr(
+                settings, "SADAIC_TERRITORY_CODE", "0032"
+            )
+            shares_change = getattr(
+                settings, "SADAIC_SHARES_CHANGE_FLAG", " "
+            )
+        elif getattr(settings, "AGADU_CWR_MODE", False):
+            territory_code = getattr(
+                settings, "AGADU_TERRITORY_CODE", "2136"
+            )
+            shares_change = getattr(
+                settings, "AGADU_SHARES_CHANGE_FLAG", "N"
+            )
+        else:
+            territory_code = "2136"
+            shares_change = "N"
         return {
-            "territory_code": getattr(settings, "CWR_TERRITORY_CODE", "0032"),
-            "shares_change": getattr(settings, "CWR_SHARES_CHANGE_FLAG", " "),
+            "territory_code": territory_code,
+            "shares_change": shares_change,
             "territory_sequence": "001",
         }
 
@@ -1036,7 +1065,7 @@ class CWRExport(models.Model):
                 "mr_share": collection_mr_share,
                 "sr_share": collection_sr_share,
             }
-            spt_data.update(self._sadaic_territory_data())
+            spt_data.update(self._cwr_territory_data())
             yield self.get_transaction_record("SPT", spt_data)
             return
 
@@ -1047,6 +1076,7 @@ class CWRExport(models.Model):
                 "name": publisher.get("name"),
                 "code": "P000001",
                 "role": "E ",
+                "tax_id": publisher.get("tax_id", " " * 9),
                 "ipi_name_number": publisher.get("ipi_name_number"),
                 "ipi_base_number": publisher.get("ipi_base_number"),
                 "pr_society": publisher.get("pr_society"),
@@ -1058,15 +1088,17 @@ class CWRExport(models.Model):
             },
         )
         if controlled_relative_share:
-            yield self.get_transaction_record(
-                "SPT",
-                {
-                    "code": "P000001",
-                    "pr_share": collection_pr_share,
-                    "mr_share": collection_mr_share,
-                    "sr_share": collection_sr_share,
-                },
-            )
+            spt_data = {
+                "code": "P000001",
+                "collection_pr_share": collection_pr_share,
+                "collection_mr_share": collection_mr_share,
+                "collection_sr_share": collection_sr_share,
+                "pr_share": collection_pr_share,
+                "mr_share": collection_mr_share,
+                "sr_share": collection_sr_share,
+            }
+            spt_data.update(self._cwr_territory_data())
+            yield self.get_transaction_record("SPT", spt_data)
 
     def yield_registration_lines(self, works):
         for work in works:
@@ -1137,7 +1169,9 @@ class CWRExport(models.Model):
             collection_pr_share = share * (1 - self.agreement_pr)
             collection_mr_share = share * (1 - self.agreement_mr)
             collection_sr_share = share * (1 - self.agreement_sr)
-            if getattr(settings, "SADAIC_ZERO_OWNERSHIP_SHARES", False):
+            if getattr(settings, "SADAIC_CWR_MODE", False) and getattr(
+                settings, "SADAIC_ZERO_OWNERSHIP_SHARES", False
+            ):
                 pr_share = Decimal(0)
                 mr_share = Decimal(0)
                 sr_share = Decimal(0)
@@ -1159,7 +1193,7 @@ class CWRExport(models.Model):
                     "original_publishers": wiw["original_publishers"],
                 }
             )
-            w.update(self._sadaic_territory_data())
+            w.update(self._cwr_territory_data())
             yield self.get_transaction_record("SWR", w)
             if share:
                 yield self.get_transaction_record("SWT", w)
@@ -1193,7 +1227,17 @@ class CWRExport(models.Model):
             if writer:
                 w = self._party_with_societies_and_cwr_code(writer)
             else:
-                w = {"writer_unknown_indicator": "Y", "tax_id": " " * 9, "cwr_code": ""}
+                tax_id = (
+                    getattr(settings, "AGADU_TAX_ID", "000000000")
+                    if getattr(settings, "AGADU_CWR_MODE", False)
+                    else " " * 9
+                )
+                w = {
+                    "code": "",
+                    "writer_unknown_indicator": "Y",
+                    "tax_id": tax_id,
+                    "cwr_code": "",
+                }
             share = Decimal(wiw["relative_share"])
             w.update(
                 {
@@ -1207,7 +1251,7 @@ class CWRExport(models.Model):
                     "collection_sr_share": share,
                 }
             )
-            w.update(self._sadaic_territory_data())
+            w.update(self._cwr_territory_data())
             yield self.get_transaction_record("OWR", w)
             if w["share"]:
                 yield self.get_transaction_record("OWT", w)
@@ -1249,7 +1293,9 @@ class CWRExport(models.Model):
             yield self.get_transaction_record("PER", artist)
 
     def get_rec_lines(self, work):
-        if getattr(settings, "SADAIC_SKIP_REC", False):
+        if getattr(settings, "SADAIC_CWR_MODE", False) and getattr(
+            settings, "SADAIC_SKIP_REC", False
+        ):
             return
         for rec in work["recordings"]:
             if rec["recording_artist"]:

@@ -1903,6 +1903,195 @@ class CWRTemplatesTest(SimpleTestCase):
                     self.assertEqual(header[59:64], b"01.10")
 
 
+@override_settings(
+    CWR_PROFILE="AGADU",
+    AGADU_CWR_MODE=True,
+    SADAIC_CWR_MODE=False,
+    AGADU_TERRITORY_CODE="2136",
+    AGADU_SHARES_CHANGE_FLAG="N",
+    AGADU_TAX_ID="000000000",
+    PUBLISHER_NAME="CORPORACION MARMAZ S.A.S.",
+    PUBLISHER_CODE="84",
+    PUBLISHER_IPI_NAME="01135451385",
+    PUBLISHER_SOCIETY_PR="84",
+    PUBLISHER_SOCIETY_MR="84",
+    PUBLISHER_SOCIETY_SR="84",
+    CWR_RECEIVER_CODE="000",
+)
+class AGADUCWRTest(SimpleTestCase):
+    """AGADU CWR 2.1 fields validated against the accepted delivery."""
+
+    def _accepted_work(self):
+        publisher = {
+            "code": "P000001",
+            "name": "CORPORACION MARMAZ S.A.S.",
+            "ipi_name_number": "01135451385",
+            "ipi_base_number": "",
+            "pr_society": "84",
+            "mr_society": "84",
+            "sr_society": "84",
+        }
+        writer = {
+            "code": "W000003",
+            "last_name": "NAVARRO RODRIGUEZ",
+            "first_name": "ALEJANDRO JOSE",
+            "ipi_name_number": "721798619",
+            "ipi_base_number": "",
+            "pr_society": "060",
+            "mr_society": "",
+            "sr_society": "",
+        }
+        artist = {
+            "code": "A000001",
+            "last_name": "GUERRERO",
+            "first_name": "MANUEL ALFREDO",
+        }
+        return {
+            "code": "000000001",
+            "work_title": "CAMINO PORTUGUESENO",
+            "iswc": "",
+            "version_type": {"code": "ORI"},
+            "writers": [
+                {
+                    "controlled": True,
+                    "writer": writer,
+                    "relative_share": "1",
+                    "writer_role": {"code": "CA"},
+                    "original_publishers": [
+                        {"publisher": publisher, "agreement": None}
+                    ],
+                }
+            ],
+            "other_titles": [],
+            "original_works": [],
+            "performing_artists": [{"artist": artist}],
+            "recordings": [
+                {
+                    "code": "R000001",
+                    "recording_title": "",
+                    "version_title": "",
+                    "recording_artist": artist,
+                    "release_date": "",
+                    "duration": "",
+                    "isrc": "UKXN22317506",
+                }
+            ],
+            "origin": None,
+            "cross_references": [],
+        }
+
+    def test_agadu_filename_matches_accepted_routing(self):
+        cwr = CWRExport(nwr_rev="NWR", year="26", num_in_year=45)
+        self.assertEqual(cwr.filename, "CW26004584_000.V21")
+
+    def test_agadu_transaction_matches_accepted_record_layout(self):
+        cwr = CWRExport(nwr_rev="NWR")
+        lines = "".join(cwr.yield_lines([self._accepted_work()])).splitlines()
+
+        self.assertEqual(
+            [line[:3] for line in lines],
+            [
+                "HDR",
+                "GRH",
+                "NWR",
+                "SPU",
+                "SPT",
+                "SWR",
+                "SWT",
+                "PWR",
+                "PER",
+                "REC",
+                "GRT",
+                "TRL",
+            ],
+        )
+        self.assertEqual(
+            [len(line) for line in lines],
+            [101, 28, 260, 183, 58, 180, 52, 110, 118, 266, 37, 24],
+        )
+
+        self.assertEqual(lines[0][3:14], "01135451385")
+        self.assertEqual(
+            lines[0][14:59], "CORPORACION MARMAZ S.A.S.".ljust(45)
+        )
+
+        spu = lines[3]
+        self.assertEqual(spu[19:21], "01")
+        self.assertEqual(spu[21:30], "P000001".ljust(9))
+        self.assertEqual(spu[30:75], "CORPORACION MARMAZ S.A.S.".ljust(45))
+        self.assertEqual(spu[76:78], "E ")
+        self.assertEqual(spu[78:87], "000000000")
+        self.assertEqual(spu[87:98], "01135451385")
+        self.assertEqual(spu[112:136], "084050000840500008405000")
+        self.assertEqual(spu[136:139], " N ")
+
+        spt = lines[4]
+        self.assertEqual(spt[19:28], "P000001".ljust(9))
+        self.assertEqual(spt[34:49], "050000500005000")
+        self.assertEqual(spt[49:58], "I2136N001")
+
+        swr = lines[5]
+        self.assertEqual(swr[19:28], "W000003".ljust(9))
+        self.assertEqual(swr[104:106], "CA")
+        self.assertEqual(swr[106:115], "000000000")
+        self.assertEqual(swr[115:126], "00721798619")
+        self.assertEqual(swr[126:150], "06005000   05000   05000")
+        self.assertEqual(swr[150:153], " N ")
+
+        swt = lines[6]
+        self.assertEqual(swt[19:28], "W000003".ljust(9))
+        self.assertEqual(swt[28:43], "050000500005000")
+        self.assertEqual(swt[43:52], "I2136N001")
+
+        pwr = lines[7]
+        self.assertEqual(pwr[19:28], "P000001".ljust(9))
+        self.assertEqual(pwr[28:73], "CORPORACION MARMAZ S.A.S.".ljust(45))
+        self.assertEqual(pwr[73:101], " " * 28)
+        self.assertEqual(pwr[101:110], "W000003".ljust(9))
+        self.assertEqual(lines[9][-17:], "UKXN22317506".ljust(17))
+
+    def test_agadu_unknown_writer_has_an_explicit_blank_party_code(self):
+        cwr = CWRExport(nwr_rev="NWR")
+        cwr.transaction_count = cwr.record_sequence = cwr.record_count = 0
+        work = {
+            "writers": [
+                {
+                    "controlled": False,
+                    "writer": None,
+                    "relative_share": "0",
+                    "writer_role": {"code": "CA"},
+                }
+            ]
+        }
+
+        lines = list(cwr.yield_other_writer_lines(work, set(), Decimal(0)))
+
+        self.assertEqual(len(lines), 1)
+        self.assertTrue(lines[0].startswith("OWR"))
+        self.assertEqual(lines[0][19:28], " " * 9)
+
+    @override_settings(
+        AGADU_CWR_MODE=False,
+        SADAIC_CWR_MODE=True,
+        SADAIC_TERRITORY_CODE="0032",
+        SADAIC_SHARES_CHANGE_FLAG=" ",
+    )
+    def test_sadaic_publisher_rules_remain_isolated(self):
+        cwr = CWRExport(nwr_rev="NWR")
+        cwr.transaction_count = cwr.record_sequence = cwr.record_count = 0
+        publisher = self._accepted_work()["writers"][0][
+            "original_publishers"
+        ][0]["publisher"]
+
+        lines = list(cwr.yield_publisher_lines(publisher, Decimal(1)))
+
+        self.assertEqual([line[:3] for line in lines], ["SPU", "SPU", "SPT"])
+        self.assertEqual(lines[0][30:75], "MARMAZ PUBLISHING".ljust(45))
+        self.assertEqual(lines[1][76:78], "SE")
+        self.assertEqual(lines[2][49:58], "I0032 001")
+        self.assertNotEqual(lines[0][136:139], " N ")
+
+
 class ValidatorsTest(TestCase):
     """Test all validators.
 

@@ -197,6 +197,52 @@ TEMPLATES_21 = {
     "MAN": Template(""),
 }
 
+
+# AGADU accepted the standard CWR 2.1 layout with the publisher/writer
+# special-agreement indicator set to N.  Keep these record tails isolated from
+# the SADAIC templates, which intentionally leave those positions blank.
+TEMPLATES_21_AGADU = TEMPLATES_21.copy()
+TEMPLATES_21_AGADU.update(
+    {
+        "SPU": Template(
+            "{% load cwr_generators %}{% autoescape off %}"
+            "SPU{{ transaction_sequence|rjust:8 }}"
+            "{{ record_sequence|rjust:8 }}"
+            "{{ chain_sequence|rjust:2 }}"
+            "{{ code|ljust:9 }}"
+            "{{ name|ljust:45 }}"
+            " "
+            "{{ role|default:'E '|ljust:2 }}"
+            "{{ tax_id|default:'000000000'|ljust:9 }}"
+            "{{ ipi_name_number|rjust:11 }}"
+            "              "
+            "{{ pr_society|soc }}{{ pr_share|default:0|cwrshare }}"
+            "{{ mr_society|soc }}{{ mr_share|default:0|cwrshare }}"
+            "{{ sr_society|soc }}{{ sr_share|default:0|cwrshare }}"
+            " N {{ ipi_base_number|default:''|ljust:13 }}"
+            "              {{ saan|default:''|ljust:14 }}  "
+            "{{ usa_license|default:''|ljust:1 }}"
+            "\r\n{% endautoescape %}"
+        ),
+        "SWR": Template(
+            "{% load cwr_generators %}{% autoescape off %}"
+            "SWR{{ transaction_sequence|rjust:8 }}"
+            "{{ record_sequence|rjust:8 }}"
+            "{{ code|ljust:9 }}"
+            "{{ last_name|ljust:45 }}"
+            "{{ first_name|ljust:30 }} "
+            "{{ writer_role|ljust:2 }}"
+            "{{ tax_id|default:'000000000'|ljust:9 }}"
+            "{{ ipi_name_number|rjust:11 }}"
+            "{{ pr_society|soc }}{{ pr_share|default:0|cwrshare }}"
+            "{{ mr_society|soc }}{{ mr_share|default:0|cwrshare }}"
+            "{{ sr_society|soc }}{{ sr_share|default:0|cwrshare }}"
+            " N  {{ ipi_base_number|default:''|ljust:13 }}"
+            "             \r\n{% endautoescape %}"
+        ),
+    }
+)
+
 TEMPLATES_22 = TEMPLATES_21.copy()
 TEMPLATES_22.update(
     {
