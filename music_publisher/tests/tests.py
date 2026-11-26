@@ -17,8 +17,9 @@ More precise tests would be better.
 
 from datetime import datetime
 from decimal import Decimal
-from io import StringIO
+from io import BytesIO, StringIO
 import json
+from zipfile import ZipFile
 
 from django.contrib.admin.models import LogEntry
 from django.contrib.admin.options import IS_POPUP_VAR
@@ -783,6 +784,69 @@ class AdminTest(TestCase):
         cwr = CWRExport.objects.first().cwr
         self.assertIn("NWR0000000000000000THE MODIFIED WORK", cwr)
         self.assertIn("THE MODIFIED WORK BEHIND THE MODIFIED WORK", cwr)
+
+    @override_settings(
+        SACM_CWR_MODE=True,
+        AGADU_CWR_MODE=False,
+        SADAIC_CWR_MODE=False,
+        SACM_PUBLISHER_NUMBER="12345",
+        SACM_SENDER_CODE="TST",
+        PUBLISHER_NAME="TEST PUBLISHER",
+        PUBLISHER_IPI_NAME="01000000092",
+        PUBLISHER_IPI_BASE="I-000000001-9",
+        PUBLISHER_SOCIETY_PR="59",
+        PUBLISHER_SOCIETY_MR="",
+        PUBLISHER_SOCIETY_SR="",
+        CWR_RECEIVER_CODE="059",
+    )
+    def test_sacm_admin_export_and_download(self):
+        self.client.force_login(self.staffuser)
+        url = reverse("admin:music_publisher_cwrexport_add")
+        data = {"works": [self.original_work.id], "description": "SACM test"}
+        rejected = self.client.post(url, {**data, "nwr_rev": "NW2"})
+        self.assertIn("nwr_rev", rejected.context["adminform"].form.errors)
+
+        response = self.client.post(url, {**data, "nwr_rev": "NWR"})
+        self.assertEqual(response.status_code, 302)
+        export = CWRExport.objects.get(description="SACM test")
+        self.assertRegex(export.filename, r"^CW[0-9]{6}TST_059\.V21$")
+        records = export.cwr.splitlines()
+        self.assertEqual(records[0][:14], "HDR01000000092")
+        self.assertEqual(records[0][14:59].strip(), "TEST PUBLISHER")
+        self.assertEqual(records[1][11:16], "02.10")
+        publishers = [record for record in records if record.startswith("SPU")]
+        self.assertEqual(len(publishers), 1)
+        self.assertEqual(publishers[0][21:30].strip(), "12345")
+        self.assertEqual(publishers[0][87:98], "01000000092")
+        self.assertEqual(publishers[0][112:115], "059")
+        self.assertEqual(publishers[0][139:152], "I-000000001-9")
+        for key, start in (("SPT", 49), ("SWT", 43)):
+            territories = [
+                record[start:start + 9] for record in records if record.startswith(key)
+            ]
+            self.assertTrue(territories)
+            self.assertEqual(set(territories), {"I0484N001"})
+        links = [record for record in records if record.startswith("PWR")]
+        self.assertTrue(links)
+        self.assertEqual({record[19:28].strip() for record in links}, {"12345"})
+
+        download_url = reverse(
+            "admin:music_publisher_cwrexport_change", args=(export.pk,)
+        )
+        with self.settings(SACM_CWR_MODE=False, CWR_RECEIVER_CODE="061"):
+            download = self.client.get(download_url + "?download=true")
+        self.assertEqual(download.status_code, 200)
+        self.assertIn(
+            export.filename.replace(".V21", ".zip"), download["Content-Disposition"]
+        )
+        with ZipFile(BytesIO(download.content)) as archive:
+            self.assertEqual(archive.namelist(), [export.filename])
+            self.assertEqual(archive.read(export.filename), export.cwr.encode("ascii"))
+
+        CWRExport.objects.filter(pk=export.pk).update(generated_filename=None)
+        self.assertTrue(
+            CWRExport.objects.get(pk=export.pk).filename.startswith("CWR-ARCHIVE-")
+        )
 
     def test_csv(self):
         """Test that CSV export works."""
