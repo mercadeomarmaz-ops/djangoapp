@@ -990,7 +990,7 @@ class CWRExport(models.Model):
 
     def _cwr_territory_data(self):
         if settings.SACM_CWR_MODE:
-            territory_code = "0484"
+            territory_code = settings.SACM_TERRITORY_CODE
             shares_change = "N"
         elif getattr(settings, "SADAIC_CWR_MODE", False):
             territory_code = getattr(
