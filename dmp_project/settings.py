@@ -4,9 +4,11 @@ Django settings for dmp_project project.
 
 import csv
 import os
+import re
 from decimal import Decimal
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 SOFTWARE = "DJANGO MUSIC PUBLISHER"
 SOFTWARE_VERSION = "24.12 HOLIDAY SPECIAL"
@@ -128,23 +130,42 @@ def env_bool(name, default=False):
 # -----------------------------------------------------------------------------
 # CWR / SOCIETY PROFILE
 # -----------------------------------------------------------------------------
-# This branch defaults to the AGADU layout validated against accepted delivery
-# CW26004584_000.V21.  SADAIC remains available as an explicit, separate
-# profile so its two-publisher rules cannot leak into AGADU exports.
-CWR_PROFILE = os.getenv("CWR_PROFILE", "AGADU").strip().upper()
+# SACM uses the single-publisher CWR 2.1 layout introduced for AGADU.
+CWR_PROFILE = os.getenv("CWR_PROFILE", "SACM").strip().upper()
+SACM_CWR_MODE = CWR_PROFILE == "SACM"
 
 # Submitter/publisher accepted by AGADU.
 PUBLISHER_NAME = os.getenv(
     "PUBLISHER",
     os.getenv("PUBLISHER_NAME", "CORPORACION MARMAZ S.A.S."),
 )
-PUBLISHER = PUBLISHER_NAME
 PUBLISHER_CODE = os.getenv("PUBLISHER_CODE", "84")
 PUBLISHER_IPI_NAME = os.getenv("PUBLISHER_IPI_NAME", "01135451385")
 PUBLISHER_IPI_BASE = os.getenv("PUBLISHER_IPI_BASE", "")
 PUBLISHER_SOCIETY_PR = os.getenv("PUBLISHER_SOCIETY_PR", "84")
 PUBLISHER_SOCIETY_MR = os.getenv("PUBLISHER_SOCIETY_MR", "84")
 PUBLISHER_SOCIETY_SR = os.getenv("PUBLISHER_SOCIETY_SR", "84")
+
+if SACM_CWR_MODE:
+    PUBLISHER_NAME = os.getenv("SACM_PUBLISHER_NAME", "CORPORACION MARMAZ S A S")
+    PUBLISHER_IPI_NAME = os.getenv("SACM_PUBLISHER_IPI_NAME", "").strip()
+    PUBLISHER_IPI_BASE = os.getenv("SACM_PUBLISHER_IPI_BASE", "").strip()
+    PUBLISHER_SOCIETY_PR = "59"
+    PUBLISHER_SOCIETY_MR = os.getenv("SACM_PUBLISHER_SOCIETY_MR", "").strip()
+    PUBLISHER_SOCIETY_SR = os.getenv("SACM_PUBLISHER_SOCIETY_SR", "").strip()
+
+    SACM_PUBLISHER_NUMBER = os.getenv("SACM_PUBLISHER_NUMBER", "").strip()
+    SACM_SENDER_CODE = os.getenv("SACM_SENDER_CODE", "84").strip().upper()
+    for name, value, pattern in (
+        ("SACM_PUBLISHER_NUMBER", SACM_PUBLISHER_NUMBER, r"[0-9]{1,9}"),
+        ("SACM_PUBLISHER_IPI_NAME", PUBLISHER_IPI_NAME, r"[0-9]{11}"),
+        ("SACM_PUBLISHER_IPI_BASE", PUBLISHER_IPI_BASE, r"I-[0-9]{9}-[0-9]"),
+        ("SACM_SENDER_CODE", SACM_SENDER_CODE, r"[A-Z0-9]{2,3}"),
+    ):
+        if not re.fullmatch(pattern, value):
+            raise ImproperlyConfigured(f"Invalid or missing {name} for CWR_PROFILE=SACM")
+
+PUBLISHER = PUBLISHER_NAME
 
 # AGADU-specific values observed in the accepted CWR and its final ACK.
 AGADU_RECEIVER_CODE = os.getenv("AGADU_RECEIVER_CODE", "000")
@@ -153,11 +174,11 @@ AGADU_SHARES_CHANGE_FLAG = os.getenv("AGADU_SHARES_CHANGE_FLAG", "N")
 AGADU_TAX_ID = os.getenv("AGADU_TAX_ID", "000000000")
 
 # -----------------------------------------------------------------------------
-# SADAIC-SPECIFIC CONFIGURATION (inactive in the AGADU profile)
+# SADAIC-SPECIFIC CONFIGURATION (inactive in the SACM profile)
 # -----------------------------------------------------------------------------
 # SADAIC expects an original publisher (E), a local subpublisher (SE), zero
 # ownership shares, Argentina territory I0032, and no REC records.
-SADAIC_CWR_MODE = env_bool(
+SADAIC_CWR_MODE = not SACM_CWR_MODE and env_bool(
     "SADAIC_CWR_MODE", CWR_PROFILE == "SADAIC"
 )
 AGADU_CWR_MODE = CWR_PROFILE == "AGADU" and not SADAIC_CWR_MODE
@@ -191,7 +212,9 @@ SADAIC_PWR_SUBMITTER_AGREEMENT = os.getenv(
 _DEFAULT_RECEIVER_CODE = (
     SADAIC_RECEIVER_CODE if SADAIC_CWR_MODE else AGADU_RECEIVER_CODE
 )
-CWR_RECEIVER_CODE = os.getenv("CWR_RECEIVER_CODE", _DEFAULT_RECEIVER_CODE)
+CWR_RECEIVER_CODE = (
+    "059" if SACM_CWR_MODE else os.getenv("CWR_RECEIVER_CODE", _DEFAULT_RECEIVER_CODE)
+)
 
 # Shares de coleccion.
 # 0.50 = 50%.
