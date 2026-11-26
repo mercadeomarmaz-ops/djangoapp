@@ -814,6 +814,7 @@ class CWRExport(models.Model):
         ordering = ("-id",)
 
     objects = DeferCwrManager()
+    SACM_TRANSACTION_TYPES = ("NWR", "REV")
 
     nwr_rev = models.CharField(
         "CWR version/type",
@@ -832,6 +833,9 @@ class CWRExport(models.Model):
         ),
     )
     cwr = models.TextField(blank=True, editable=False)
+    generated_filename = models.CharField(
+        max_length=64, null=True, blank=True, editable=False
+    )
     created_on = models.DateTimeField(editable=False, null=True)
     year = models.CharField(max_length=2, db_index=True, editable=False, blank=True)
     num_in_year = models.PositiveSmallIntegerField(default=0)
@@ -855,6 +859,14 @@ class CWRExport(models.Model):
 
     @property
     def filename(self):
+        if self.generated_filename:
+            return self.generated_filename
+        if settings.SACM_CWR_MODE and self.created_on is not None:
+            # Older files have no stored recipient. Keep them downloadable
+            # without assigning them to SACM after a change of profile.
+            return (
+                f"CWR-ARCHIVE-{self.year}{self.num_in_year:04}-{self.pk}.V{self.version}"
+            )
         if self.version in ["30", "31"]:
             return self.filename3
         return self.filename2
@@ -873,10 +885,15 @@ class CWRExport(models.Model):
 
     @property
     def filename2(self):
+        sender = (
+            settings.SACM_SENDER_CODE
+            if settings.SACM_CWR_MODE
+            else self.publisher_code or settings.PUBLISHER_CODE
+        )
         return "CW{}{:04}{}_{}.V{}".format(
             self.year,
             self.num_in_year,
-            self.publisher_code or settings.PUBLISHER_CODE,
+            sender,
             getattr(settings, "CWR_RECEIVER_CODE", "061"),
             self.version,
         )
@@ -890,8 +907,8 @@ class CWRExport(models.Model):
         elif self.version == "31":
             template = TEMPLATES_31.get(key)
         else:
-            if self.version == "21" and getattr(
-                settings, "AGADU_CWR_MODE", False
+            if self.version == "21" and (
+                settings.AGADU_CWR_MODE or settings.SACM_CWR_MODE
             ):
                 tdict = TEMPLATES_21_AGADU
             else:
@@ -943,10 +960,10 @@ class CWRExport(models.Model):
                 party["mr_society"] = organization_code
             elif affiliation_type == "SR":
                 party["sr_society"] = organization_code
-        if getattr(settings, "AGADU_CWR_MODE", False):
+        if settings.AGADU_CWR_MODE or settings.SACM_CWR_MODE:
             party["cwr_code"] = party.get("code", "")
-            party["tax_id"] = getattr(
-                settings, "AGADU_TAX_ID", "000000000"
+            party["tax_id"] = (
+                settings.AGADU_TAX_ID if settings.AGADU_CWR_MODE else " " * 9
             )
         else:
             party["cwr_code"] = self._cwr_party_code(
@@ -972,7 +989,10 @@ class CWRExport(models.Model):
         }
 
     def _cwr_territory_data(self):
-        if getattr(settings, "SADAIC_CWR_MODE", False):
+        if settings.SACM_CWR_MODE:
+            territory_code = "0484"
+            shares_change = "N"
+        elif getattr(settings, "SADAIC_CWR_MODE", False):
             territory_code = getattr(
                 settings, "SADAIC_TERRITORY_CODE", "0032"
             )
@@ -994,6 +1014,9 @@ class CWRExport(models.Model):
             "shares_change": shares_change,
             "territory_sequence": "001",
         }
+
+    def _controlled_publisher_code(self):
+        return settings.SACM_PUBLISHER_NUMBER if settings.SACM_CWR_MODE else "P000001"
 
     def yield_publisher_lines(self, publisher, controlled_relative_share):
         publisher = self._publisher_with_societies(publisher)
@@ -1069,12 +1092,13 @@ class CWRExport(models.Model):
             yield self.get_transaction_record("SPT", spt_data)
             return
 
+        publisher_code = self._controlled_publisher_code()
         yield self.get_transaction_record(
             "SPU",
             {
                 "chain_sequence": 1,
                 "name": publisher.get("name"),
-                "code": "P000001",
+                "code": publisher_code,
                 "role": "E ",
                 "tax_id": publisher.get("tax_id", " " * 9),
                 "ipi_name_number": publisher.get("ipi_name_number"),
@@ -1089,7 +1113,7 @@ class CWRExport(models.Model):
         )
         if controlled_relative_share:
             spt_data = {
-                "code": "P000001",
+                "code": publisher_code,
                 "collection_pr_share": collection_pr_share,
                 "collection_mr_share": collection_mr_share,
                 "collection_sr_share": collection_sr_share,
@@ -1208,7 +1232,7 @@ class CWRExport(models.Model):
                     w["society_assigned_agreement_number"] = ""
                 else:
                     w["publisher_sequence"] = 1
-                    w["publisher_code"] = "P000001"
+                    w["publisher_code"] = self._controlled_publisher_code()
                     w["publisher_name"] = publisher["name"]
                     w["submitter_agreement_number"] = saan or ""
                 yield self.get_transaction_record("PWR", w)
@@ -1336,6 +1360,10 @@ class CWRExport(models.Model):
         )
 
     def yield_lines(self, works):
+        if (
+            settings.SACM_CWR_MODE and self.nwr_rev not in self.SACM_TRANSACTION_TYPES
+        ):
+            raise ValidationError("SACM exports require CWR 2.1 (NWR or REV).")
         self.record_count = self.record_sequence = self.transaction_count = 0
         yield self.get_header()
         if self.nwr_rev == "NW2":
@@ -1351,19 +1379,19 @@ class CWRExport(models.Model):
         yield self.get_record("TRL", {"transaction_count": self.transaction_count, "record_count": self.record_count + 4})
 
     def create_cwr(self, publisher_code=None):
-        now = timezone.now()
-        if publisher_code is None:
-            publisher_code = settings.PUBLISHER_CODE
-        self.publisher_code = publisher_code
         if self.cwr:
             return
-        self.created_on = now
-        self.year = now.strftime("%y")
+        self.publisher_code = publisher_code or settings.PUBLISHER_CODE
+        created_on = timezone.now()
+        self.year = created_on.strftime("%y")
         last = type(self).objects.filter(year=self.year).order_by("-num_in_year").first()
         self.num_in_year = last.num_in_year + 1 if last else 1
         qs = self.works.order_by("id")
         works = Work.objects.get_dict(qs)["works"]
+        filename = self.filename
         self.cwr = "".join(self.yield_lines(works))
+        self.generated_filename = filename
+        self.created_on = created_on
         self.save()
         Work.persist_work_ids(self.works)
 
