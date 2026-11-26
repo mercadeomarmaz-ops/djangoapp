@@ -1957,6 +1957,13 @@ class CWRExportAdmin(admin.ModelAdmin):
     def get_form(self, request, obj=None, **kwargs):
         """Set initial values for work IDs."""
         form = super().get_form(request, obj, **kwargs)
+        if settings.SACM_CWR_MODE and "nwr_rev" in form.base_fields:
+            field = form.base_fields["nwr_rev"]
+            field.choices = [
+                (code, label)
+                for code, label in field.choices
+                if code in CWRExport.SACM_TRANSACTION_TYPES
+            ]
         if hasattr(self, "work_ids"):
             form.base_fields["works"].initial = self.work_ids
         return form
@@ -2385,9 +2392,13 @@ class DataImportAdmin(AdminWithReport):
     add_form_template = "admin/add_data_import.html"
     form = DataImportForm
 
-    list_display = ("filename", "date")
-    fields = readonly_fields = ("filename", "date", "print_report")
+    list_display = ("filename", "created_on")
+    fields = readonly_fields = ("filename", "created_on", "print_report")
     ordering = ("-id",)
+
+    @admin.display(description="Filename")
+    def filename(self, obj):
+        return obj.data_file.name.rsplit("/", 1)[-1] if obj.data_file else ""
 
     def add_view(self, request, form_url="", extra_context=None):
         if "download_template" in request.GET:
@@ -2430,7 +2441,5 @@ class DataImportAdmin(AdminWithReport):
 
         if form.is_valid():
             cd = form.cleaned_data
-            f = cd["data_file"]
-            obj.filename = f.name
             obj.report = cd["report"]
             super().save_model(request, obj, form, change)
