@@ -133,6 +133,7 @@ def env_bool(name, default=False):
 # SACM uses the single-publisher CWR 2.1 layout introduced for AGADU.
 CWR_PROFILE = os.getenv("CWR_PROFILE", "SACM").strip().upper()
 SACM_CWR_MODE = CWR_PROFILE == "SACM"
+SACM_TERRITORY_CODE = os.getenv("SACM_TERRITORY_CODE", "0484").strip()
 
 # Submitter/publisher accepted by AGADU.
 PUBLISHER_NAME = os.getenv(
@@ -161,6 +162,7 @@ if SACM_CWR_MODE:
         ("SACM_PUBLISHER_IPI_NAME", PUBLISHER_IPI_NAME, r"[0-9]{11}"),
         ("SACM_PUBLISHER_IPI_BASE", PUBLISHER_IPI_BASE, r"I-[0-9]{9}-[0-9]"),
         ("SACM_SENDER_CODE", SACM_SENDER_CODE, r"[A-Z0-9]{2,3}"),
+        ("SACM_TERRITORY_CODE", SACM_TERRITORY_CODE, r"0484"),
     ):
         if not re.fullmatch(pattern, value):
             raise ImproperlyConfigured(f"Invalid or missing {name} for CWR_PROFILE=SACM")
